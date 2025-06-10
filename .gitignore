@@ -75,6 +75,10 @@ docs/_build/
 .pybuilder/
 target/
 
+# Streamlit
+.streamlit/secrets.toml
+*.log
+
 # Jupyter Notebook
 .ipynb_checkpoints
 
