@@ -1125,6 +1125,362 @@ class EnhancedOpenAIManager:
             print(f"[Backend] Audio generation error: {e}")
             return None
 
+
+    def generate_youtube_title(self, story_text: str, campaign: str, target_audience: str, hook_text: str = None) -> dict:
+        """Generate YouTube-optimized title with multiple variations."""
+        
+        # YouTube title best practices
+        title_guidelines = """
+        YOUTUBE TITLE OPTIMIZATION RULES:
+        1. Length: 50-60 characters (max 70)
+        2. Front-load keywords in first 30 characters
+        3. Include emotional triggers: shocking, amazing, incredible, truth
+        4. Use numbers for credibility: percentages, amounts, timeframes
+        5. Create curiosity gap - tease but don't reveal everything
+        6. Include power words: How, Why, What, Secret, Truth, Exposed
+        7. Capitalize important words
+        8. Avoid clickbait that doesn't match content
+        9. Include trending terms when relevant
+        """
+        
+        system_prompt = f"""You are a YouTube title optimization expert who creates viral titles.
+        
+        {title_guidelines}
+        
+        Campaign: {campaign}
+        Audience: {target_audience}
+        
+        Create 5 different title variations:
+        1. Question format (creates curiosity)
+        2. Number/statistic format (builds credibility)  
+        3. Emotional hook format (triggers response)
+        4. How-to format (promises value)
+        5. Story/transformation format (shows journey)
+        
+        Each title must:
+        - Be exactly 50-60 characters
+        - Include the main keyword within first 30 characters
+        - Create urgency or curiosity
+        - Match the content authentically
+        - Use YouTube-friendly formatting
+        
+        Return titles as a JSON object with keys: question, statistic, emotional, howto, transformation
+        """
+        
+        if self.client:
+            try:
+                response = self.client.chat.completions.create(
+                    model="gpt-4-turbo-preview",
+                    messages=[
+                        {"role": "system", "content": system_prompt},
+                        {"role": "user", "content": f"Story summary: {story_text[:500]}\n\nHook: {hook_text}"}
+                    ],
+                    max_tokens=300,
+                    temperature=0.8,
+                    response_format={"type": "json_object"}
+                )
+                
+                titles = json.loads(response.choices[0].message.content)
+                
+                # Add performance predictions
+                for key in titles:
+                    titles[key] = {
+                        "title": titles[key],
+                        "ctr_prediction": self._predict_ctr(titles[key]),
+                        "length": len(titles[key])
+                    }
+                
+                return titles
+                
+            except Exception as e:
+                print(f"[Backend] Title generation failed: {e}")
+                return None
+
+    def generate_youtube_description(self, story_text: str, title: str, campaign: str, 
+                                target_audience: str, video_length: str, cta: str = None) -> str:
+        """Generate YouTube-optimized description with all algorithm optimization elements."""
+        
+        description_template = """
+        YOUTUBE DESCRIPTION OPTIMIZATION FRAMEWORK:
+        
+        1. HOOK (First 125 characters) - Shows in search results
+        - Restate the problem/promise
+        - Include main keyword
+        - Create urgency
+        
+        2. EXPANSION (Lines 2-5)
+        - Elaborate on the story
+        - Include 2-3 keywords naturally
+        - Build emotional connection
+        
+        3. TIMESTAMPS (If applicable)
+        0:00 Introduction/Hook
+        0:XX First major point
+        0:XX Transformation moment
+        0:XX Call to action
+        
+        4. VALUE PROPOSITION
+        - What viewers will learn/gain
+        - Why this matters now
+        - Social proof if available
+        
+        5. CALL TO ACTION
+        - Subscribe reminder
+        - Specific action to take
+        - Community engagement
+        
+        6. RESOURCES/LINKS
+        - Related resources
+        - Social media
+        - Website/petition
+        
+        7. HASHTAGS (3-5 most relevant)
+        - Campaign specific
+        - Trending related tags
+        - Community tags
+        
+        8. ENGAGEMENT PROMPTS
+        - Question for comments
+        - Share request
+        - Experience sharing
+        """
+        
+        system_prompt = f"""Create a YouTube-optimized description that maximizes watch time and engagement.
+        
+        {description_template}
+        
+        Video Details:
+        - Title: {title}
+        - Length: {video_length}
+        - Campaign: {campaign}
+        - Audience: {target_audience}
+        
+        CRITICAL: First 125 characters must:
+        - Hook viewer immediately
+        - Include primary keyword
+        - Promise value/transformation
+        - Create urgency to watch
+        
+        Include:
+        - Natural keyword placement (3-5 times)
+        - Emotional engagement points
+        - Clear CTAs throughout
+        - Community building elements
+        - Share-worthy moments
+        
+        Format with proper spacing and emojis for scannability.
+        """
+        
+        if self.client:
+            try:
+                response = self.client.chat.completions.create(
+                    model="gpt-4-turbo-preview",
+                    messages=[
+                        {"role": "system", "content": system_prompt},
+                        {"role": "user", "content": f"Story: {story_text}\n\nMain CTA: {cta or 'Take action in your community'}"}
+                    ],
+                    max_tokens=800,
+                    temperature=0.7
+                )
+                
+                description = response.choices[0].message.content
+                
+                # Ensure critical first 125 chars
+                first_line = description.split('\n')[0]
+                if len(first_line) > 125:
+                    # Optimize first line to exactly 125 chars
+                    first_line = first_line[:122] + "..."
+                    lines = description.split('\n')
+                    lines[0] = first_line
+                    description = '\n'.join(lines)
+                
+                return description
+                
+            except Exception as e:
+                print(f"[Backend] Description generation failed: {e}")
+                return None
+
+    def generate_youtube_tags(self, story_text: str, title: str, campaign: str) -> list:
+        """Generate optimized YouTube tags for maximum discoverability."""
+        
+        system_prompt = """Generate 15 YouTube tags optimized for search and discovery.
+        
+        Tag categories to include:
+        1. Broad topic tags (3-4)
+        2. Specific niche tags (4-5)
+        3. Long-tail keyword tags (3-4)
+        4. Trending/seasonal tags (2-3)
+        5. Branded/campaign tags (1-2)
+        
+        Rules:
+        - Mix single words and phrases
+        - Include variations of main keywords
+        - Add emotional/action words
+        - Include location if relevant
+        - Use trending formats
+        
+        Return as JSON array of strings.
+        """
+        
+        if self.client:
+            try:
+                response = self.client.chat.completions.create(
+                    model="gpt-4-turbo-preview",
+                    messages=[
+                        {"role": "system", "content": system_prompt},
+                        {"role": "user", "content": f"Title: {title}\nCampaign: {campaign}\nStory: {story_text[:300]}"}
+                    ],
+                    max_tokens=200,
+                    temperature=0.6,
+                    response_format={"type": "json_object"}
+                )
+                
+                result = json.loads(response.choices[0].message.content)
+                tags = result.get("tags", [])[:15]  # YouTube allows max 15 tags
+                
+                return tags
+                
+            except Exception as e:
+                print(f"[Backend] Tags generation failed: {e}")
+                return []
+
+    def generate_thumbnail_suggestions(self, story_text: str, title: str, images: list) -> dict:
+        """Generate thumbnail optimization suggestions based on YouTube best practices."""
+        
+        suggestions = {
+            "primary_image": 0,  # Index of best image for thumbnail
+            "improvements": [],
+            "text_overlay": "",
+            "emoji_suggestions": [],
+            "color_adjustments": {}
+        }
+        
+        system_prompt = """Analyze the story and images to suggest the perfect YouTube thumbnail.
+        
+        Thumbnail rules for maximum CTR:
+        1. Faces get 38% more clicks - close-up emotional expressions
+        2. High contrast and bright colors
+        3. Rule of thirds composition
+        4. Text overlay: 3-5 words max, large font
+        5. Create curiosity without giving away everything
+        6. Mobile-first: must be clear at small size
+        
+        Suggest:
+        1. Which image index (0, 1, or 2) works best
+        2. Text overlay (3-5 words)
+        3. Color adjustments needed
+        4. Emoji additions if helpful
+        5. Specific improvements
+        
+        Return as JSON object.
+        """
+        
+        if self.client:
+            try:
+                response = self.client.chat.completions.create(
+                    model="gpt-4-turbo-preview",
+                    messages=[
+                        {"role": "system", "content": system_prompt},
+                        {"role": "user", "content": f"Title: {title}\nStory: {story_text[:300]}\n\nWe have 3 images from different story stages."}
+                    ],
+                    max_tokens=300,
+                    temperature=0.5,
+                    response_format={"type": "json_object"}
+                )
+                
+                suggestions = json.loads(response.choices[0].message.content)
+                return suggestions
+                
+            except Exception as e:
+                print(f"[Backend] Thumbnail suggestions failed: {e}")
+                return suggestions
+
+    def _predict_ctr(self, title: str) -> float:
+        """Predict CTR based on title characteristics."""
+        score = 0.04  # Base CTR of 4%
+        
+        # Positive factors
+        if any(word in title.lower() for word in ['how', 'why', 'what']):
+            score += 0.015
+        if any(char.isdigit() for char in title):
+            score += 0.02
+        if '?' in title:
+            score += 0.01
+        if any(word in title.lower() for word in ['secret', 'truth', 'exposed', 'shocking']):
+            score += 0.015
+        if len(title) >= 50 and len(title) <= 60:
+            score += 0.01
+        
+        # Negative factors
+        if len(title) > 70:
+            score -= 0.02
+        if title.isupper():
+            score -= 0.01
+            
+        return min(score, 0.12)  # Cap at 12% CTR
+
+    def generate_youtube_metadata(self, story_text: str, campaign: str, target_audience: str, 
+                                video_length: str, hook_text: str = None, cta: str = None) -> dict:
+        """Generate complete YouTube metadata package."""
+        
+        # Generate titles
+        titles = self.generate_youtube_title(story_text, campaign, target_audience, hook_text)
+        
+        if not titles:
+            return None
+        
+        # Select best title based on CTR prediction
+        best_title_key = max(titles.keys(), key=lambda k: titles[k]['ctr_prediction'])
+        best_title = titles[best_title_key]['title']
+        
+        # Generate description
+        description = self.generate_youtube_description(
+            story_text, best_title, campaign, target_audience, video_length, cta
+        )
+        
+        # Generate tags
+        tags = self.generate_youtube_tags(story_text, best_title, campaign)
+        
+        # Generate thumbnail suggestions
+        thumbnail_suggestions = self.generate_thumbnail_suggestions(story_text, best_title, [])
+        
+        return {
+            "titles": titles,
+            "selected_title": best_title,
+            "selected_title_type": best_title_key,
+            "description": description,
+            "tags": tags,
+            "thumbnail_suggestions": thumbnail_suggestions,
+            "metadata_quality_score": self._calculate_metadata_quality(best_title, description, tags)
+        }
+
+    def _calculate_metadata_quality(self, title: str, description: str, tags: list) -> int:
+        """Calculate overall metadata quality score."""
+        score = 0
+        
+        # Title quality (40 points)
+        if 50 <= len(title) <= 60:
+            score += 20
+        if any(word in title.lower() for word in ['how', 'why', 'what']):
+            score += 10
+        if any(char.isdigit() for char in title):
+            score += 10
+        
+        # Description quality (40 points)
+        if len(description) > 500:
+            score += 20
+        if description.count('\n') > 5:  # Good formatting
+            score += 10
+        if any(emoji in description for emoji in ['🎯', '📱', '💡', '⚡', '🔥']):
+            score += 10
+        
+        # Tags quality (20 points)
+        if len(tags) >= 10:
+            score += 10
+        if len(tags) == 15:  # Max allowed
+            score += 10
+        
+        return score
 def create_enhanced_video(images, audio_files, video_params, narration_texts=None):
     """Create enhanced video with transitions, subtitles, and effects."""
     if not VIDEO_SUPPORT:
@@ -1681,9 +2037,7 @@ def main():
                             st.session_state.narration_texts = narration_texts
 
                     # Step 5: Create final video
-                    if (st.session_state.generated_images and
-                        st.session_state.audio_files and
-                        VIDEO_SUPPORT):
+                    if (st.session_state.generated_images and st.session_state.audio_files and VIDEO_SUPPORT):
 
                         if len(st.session_state.generated_images) == len(st.session_state.audio_files):
                             status_text.text("🎬 Creating your YouTube masterpiece...")
@@ -1735,9 +2089,306 @@ def main():
 
                             if video_path:
                                 st.session_state.final_video_path = video_path
+                                progress_bar.progress(95)
+                                status_text.text("🎯 Optimizing for YouTube algorithm...")
+                                
+                                # Generate YouTube metadata
+                                youtube_metadata = manager.generate_youtube_metadata(
+                                    story_text=st.session_state.generated_story,
+                                    campaign=selected_campaign,
+                                    target_audience=target_audience,
+                                    video_length=content_length,
+                                    hook_text=story_input[:100],  # First 100 chars as hook
+                                    cta=f"Join the {CAMPAIGN_CATEGORIES[selected_campaign]['name']} movement"
+                                )
+                                
+                                if youtube_metadata:
+                                    st.session_state.youtube_metadata = youtube_metadata
+                                    progress_bar.progress(100)
+                                    status_text.text("✅ Video and YouTube optimization complete!")
+                                    
+                                    # Mark story as created for tracking
+                                    st.session_state.story_created_flag = True
+                                    
+                                    # Display video with metrics
+                                    st.markdown("### 🎬 Your YouTube Video")
+                                    
+                                    col1, col2, col3 = st.columns([2, 1, 1])
+                                    with col1:
+                                        st.video(video_path)
+                                    with col2:
+                                        st.metric("Duration", content_length)
+                                        st.metric("Quality", "HD 1080p")
+                                    with col3:
+                                        st.metric("FPS", "30")
+                                        st.metric("Aspect", "16:9")
+                                    
+                                    # YouTube Optimization Section
+                                    st.markdown("---")
+                                    st.markdown("### 🚀 YouTube Optimization Package")
+                                    
+                                    # Title selection
+                                    with st.container():
+                                        st.markdown("#### 📝 Optimized Titles")
+                                        st.info(f"🎯 Recommended: **{youtube_metadata['selected_title']}** (Predicted CTR: {youtube_metadata['titles'][youtube_metadata['selected_title_type']]['ctr_prediction']:.1%})")
+                                        
+                                        # Show all title options
+                                        with st.expander("View All Title Options"):
+                                            for title_type, title_data in youtube_metadata['titles'].items():
+                                                col1, col2, col3 = st.columns([3, 1, 1])
+                                                with col1:
+                                                    st.write(f"**{title_type.title()}:** {title_data['title']}")
+                                                with col2:
+                                                    st.caption(f"CTR: {title_data['ctr_prediction']:.1%}")
+                                                with col3:
+                                                    st.caption(f"Length: {title_data['length']}")
+                                                
+                                                if st.button(f"Use This Title", key=f"title_{title_type}"):
+                                                    st.session_state.selected_youtube_title = title_data['title']
+                                                    st.success("Title selected!")
+                                # Description
+                                with st.container():
+                                    st.markdown("#### 📄 Optimized Description")
+                                    
+                                    # Show first 125 characters highlighted
+                                    description = youtube_metadata['description']
+                                    first_125 = description[:125]
+                                    rest_of_description = description[125:]
+                                    
+                                    st.info("🎯 First 125 characters (shown in search):")
+                                    st.code(first_125)
+                                    
+                                    # Full description
+                                    with st.expander("View Full Description"):
+                                        st.text_area("Full Description", description, height=300, key="youtube_description")
+                                        
+                                        # Copy button
+                                        if st.button("📋 Copy Description"):
+                                            st.code(description)
+                                            st.success("Description ready to paste!")
+                                
+                                # Tags
+                                with st.container():
+                                    st.markdown("#### 🏷️ Optimized Tags")
+                                    
+                                    # Display tags as chips
+                                    tags_html = " ".join([f'<span class="campaign-tag">#{tag}</span>' for tag in youtube_metadata['tags']])
+                                    st.markdown(tags_html, unsafe_allow_html=True)
+                                    
+                                    # Copy-ready format
+                                    with st.expander("Copy Tags"):
+                                        st.code(", ".join(youtube_metadata['tags']))
+                                
+                                # Thumbnail Suggestions
+                                with st.container():
+                                    st.markdown("#### 🖼️ Thumbnail Optimization")
+                                    
+                                    suggestions = youtube_metadata['thumbnail_suggestions']
+                                    
+                                    col1, col2 = st.columns([2, 1])
+                                    with col1:
+                                        if st.session_state.generated_images:
+                                            recommended_idx = suggestions.get('primary_image', 0)
+                                            st.image(
+                                                st.session_state.generated_images[recommended_idx], 
+                                                caption=f"Recommended Thumbnail (Scene {recommended_idx + 1})",
+                                                use_column_width=True
+                                            )
+                                    
+                                    with col2:
+                                        st.markdown("**Optimization Tips:**")
+                                        st.write(f"✏️ Text Overlay: **{suggestions.get('text_overlay', 'Add 3-5 word hook')}**")
+                                        
+                                        if suggestions.get('improvements'):
+                                            for improvement in suggestions['improvements']:
+                                                st.write(f"• {improvement}")
+                                        
+                                        if suggestions.get('emoji_suggestions'):
+                                            st.write(f"😊 Add emojis: {' '.join(suggestions['emoji_suggestions'])}")
+                                        
+                                        # Thumbnail download
+                                        if st.button("💾 Download Thumbnail Image"):
+                                            thumbnail_img = st.session_state.generated_images[recommended_idx]
+                                            buffer = BytesIO()
+                                            thumbnail_img.save(buffer, format="PNG")
+                                            st.download_button(
+                                                "Download PNG",
+                                                buffer.getvalue(),
+                                                f"thumbnail_{selected_campaign}_{datetime.now().strftime('%Y%m%d_%H%M%S')}.png",
+                                                "image/png"
+                                            )
+                                
+                                # YouTube Analytics Predictions
+                                with st.container():
+                                    st.markdown("#### 📊 Performance Predictions")
+                                    
+                                    quality_score = youtube_metadata['metadata_quality_score']
+                                    
+                                    col1, col2, col3, col4 = st.columns(4)
+                                    with col1:
+                                        st.metric("Metadata Quality", f"{quality_score}/100")
+                                    with col2:
+                                        predicted_ctr = youtube_metadata['titles'][youtube_metadata['selected_title_type']]['ctr_prediction']
+                                        st.metric("Predicted CTR", f"{predicted_ctr:.1%}")
+                                    with col3:
+                                        # Estimate based on quality
+                                        retention = 0.5 + (quality_score / 1000)  # 50-60% based on quality
+                                        st.metric("Est. Retention", f"{retention:.0%}")
+                                    with col4:
+                                        engagement = 0.05 + (quality_score / 2000)  # 5-10% based on quality
+                                        st.metric("Est. Engagement", f"{engagement:.1%}")
+                                
+                                # Complete YouTube Package Download
+                                st.markdown("---")
+                                col1, col2, col3 = st.columns(3)
+                                
+                                with col1:
+                                    # Video download
+                                    with open(video_path, "rb") as f:
+                                        video_bytes = f.read()
+                                        st.download_button(
+                                            "📥 Download Video (MP4)",
+                                            video_bytes,
+                                            f"youtube_story_{selected_campaign}_{datetime.now().strftime('%Y%m%d_%H%M%S')}.mp4",
+                                            "video/mp4",
+                                            use_container_width=True
+                                        )
+                                
+                                with col2:
+                                    metadata_text = f"""YOUTUBE UPLOAD PACKAGE
+        
+                                    Title: {youtube_metadata['selected_title']}
+
+                                    Description:
+                                    {youtube_metadata['description']}
+
+                                    Tags:
+                                    {', '.join(youtube_metadata['tags'])}
+
+                                    Thumbnail Notes:
+                                    - Use image {suggestions.get('primary_image', 0) + 1}
+                                    - Add text: {suggestions.get('text_overlay', 'Your text here')}
+                                    - {' | '.join(suggestions.get('improvements', []))}
+                                    """
+                                    st.download_button(
+                                        "📋 Download Metadata Package",
+                                        metadata_text,
+                                        f"youtube_metadata_{selected_campaign}_{datetime.now().strftime('%Y%m%d_%H%M%S')}.txt",
+                                        "text/plain",
+                                        use_container_width=True
+                                    )
+                                
+
+                                with col3:
+                                    # Subtitles if available
+                                    if subtitles and 'narration_texts' in st.session_state:
+                                        # Create subtitle file
+                                        timings = []
+                                        current = 0
+                                        for audio_file in st.session_state.audio_files:
+                                            audio_info = MP3(audio_file)
+                                            duration = audio_info.info.length
+                                            timings.append((current, current + duration))
+                                            current += duration
+                                        
+                                        srt_content = create_subtitle_file(
+                                            st.session_state.narration_texts,
+                                            timings
+                                        )
+                                        
+                                        st.download_button(
+                                            "📥 Download Subtitles (SRT)",
+                                            srt_content,
+                                            f"subtitles_{selected_campaign}_{datetime.now().strftime('%Y%m%d_%H%M%S')}.srt",
+                                            "text/plain",
+                                            use_container_width=True
+                                        )
+                                # YouTube Strategy Guide
+                                with st.expander("📈 YouTube Upload Strategy Guide"):
+                                    st.markdown(f"""
+                                    ### 🎯 Optimal Upload Strategy
+                                    
+                                    **1. Upload Timing:**
+                                    - Best days: Tuesday, Wednesday, Thursday
+                                    - Best times: 2-4 PM (your audience's timezone)
+                                    - Avoid: Monday mornings, Friday evenings
+                                    
+                                    **2. First 24 Hours (Critical):**
+                                    - Share in relevant communities
+                                    - Respond to EVERY comment
+                                    - Pin a comment with your CTA
+                                    - Create a community post
+                                    
+                                    **3. Thumbnail A/B Testing:**
+                                    - Try 2-3 variations in first week
+                                    - Test different text overlays
+                                    - Monitor CTR changes
+                                    
+                                    **4. Description Optimization:**
+                                    - Add timestamps after upload
+                                    - Include 3-5 relevant links
+                                    - Update based on comments
+                                    
+                                    **5. Engagement Tactics:**
+                                    - Ask a question in first 5 seconds
+                                    - End with clear next video CTA
+                                    - Create playlist immediately
+                                    - Use end screens and cards
+                                    
+                                    **6. Algorithm Signals to Optimize:**
+                                    - 📈 CTR: {predicted_ctr:.1%} (aim for {predicted_ctr * 1.2:.1%}+)
+                                    - ⏱️ Retention: Crucial first 15 seconds
+                                    - 💬 Comments: Reply within first hour
+                                    - 👍 Likes: Ask specifically at {int(float(content_length.split()[0]) * 0.7)}s
+                                    
+                                    **7. Community Building:**
+                                    - Create follow-up community post
+                                    - Share behind-the-scenes content
+                                    - Ask for video ideas
+                                    - Highlight best comments
+                                    """)
+                                
+                                # Save enhanced content data
+                                if st.session_state.generated_story:
+                                    content_data = {
+                                        "id": hashlib.md5(f"{story_input}{datetime.now()}".encode()).hexdigest()[:8],
+                                        "title": story_input[:50] + "..." if len(story_input) > 50 else story_input,
+                                        "youtube_title": youtube_metadata['selected_title'],
+                                        "youtube_description": youtube_metadata['description'],
+                                        "youtube_tags": youtube_metadata['tags'],
+                                        "text": st.session_state.generated_story,
+                                        "campaign": selected_campaign,
+                                        "type": "youtube_story",
+                                        "author": "Content Creator",
+                                        "target_audience": target_audience,
+                                        "video_length": content_length,
+                                        "story_structure": selected_structure,
+                                        "visual_style": visual_style,
+                                        "quality_score": validation['quality_score'],
+                                        "metadata_quality_score": youtube_metadata['metadata_quality_score'],
+                                        "predicted_ctr": predicted_ctr,
+                                        "created_at": datetime.now().isoformat()
+                                    }
+                                    
+                                    save_to_mongodb(content_data, manager.client)
+                                    
+                                    # Increment story count if not admin and video was successfully created
+                                    if not st.session_state.admin_mode and st.session_state.story_created_flag:
+                                        story_tracker.increment_story_count()
+                                        st.session_state.story_created_flag = False
+                                        
+                                        # Show updated count
+                                        remaining = story_tracker.get_remaining_stories()
+                                        if remaining > 0:
+                                            st.success(f"✅ Video created successfully! You have {remaining} stories remaining today.")
+                                        else:
+                                            st.warning("⚠️ You've reached your daily limit. Come back tomorrow for more!")
+                            
+                            else:
+                                # If YouTube metadata generation failed, use original display
                                 progress_bar.progress(100)
                                 status_text.text("✅ Video created successfully!")
-
+                                
                                 # Mark story as created for tracking
                                 st.session_state.story_created_flag = True
 
@@ -1851,40 +2502,11 @@ def main():
                                             st.success(f"✅ Video created successfully! You have {remaining} stories remaining today.")
                                         else:
                                             st.warning("⚠️ You've reached your daily limit. Come back tomorrow for more!")
-                            else:
-                                st.error("Video creation failed. However, your story, images, and audio have been generated successfully!")
-                                
-                                # Still save to database even if video creation failed
-                                if st.session_state.generated_story:
-                                    content_data = {
-                                        "id": hashlib.md5(f"{story_input}{datetime.now()}".encode()).hexdigest()[:8],
-                                        "title": story_input[:50] + "..." if len(story_input) > 50 else story_input,
-                                        "text": st.session_state.generated_story,
-                                        "campaign": selected_campaign,
-                                        "type": "youtube_story",
-                                        "author": "Content Creator",
-                                        "target_audience": target_audience,
-                                        "video_length": content_length,
-                                        "story_structure": selected_structure,
-                                        "visual_style": visual_style,
-                                        "quality_score": validation['quality_score'],
-                                        "created_at": datetime.now().isoformat()
-                                    }
-
-                                    save_to_mongodb(content_data, manager.client)
-
-                                    # Still count the story even if video failed
-                                    if not st.session_state.admin_mode:
-                                        story_tracker.increment_story_count()
-                                        remaining = story_tracker.get_remaining_stories()
-                                        if remaining > 0:
-                                            st.info(f"Story content created successfully! You have {remaining} stories remaining today.")
-                                        else:
-                                            st.warning("⚠️ You've reached your daily limit. Come back tomorrow for more!")
+                                            
                         else:
-                            st.warning("⚠️ Video creation is not available. Please install moviepy: `pip install moviepy==1.0.3`")
+                            st.error("Video creation failed. However, your story, images, and audio have been generated successfully!")
                             
-                            # Still save the content
+                            # Still save to database even if video creation failed
                             if st.session_state.generated_story:
                                 content_data = {
                                     "id": hashlib.md5(f"{story_input}{datetime.now()}".encode()).hexdigest()[:8],
@@ -1903,15 +2525,45 @@ def main():
 
                                 save_to_mongodb(content_data, manager.client)
 
-                                # Count the story
+                                # Still count the story even if video failed
                                 if not st.session_state.admin_mode:
                                     story_tracker.increment_story_count()
                                     remaining = story_tracker.get_remaining_stories()
                                     if remaining > 0:
-                                        st.success(f"✅ Story content created successfully! You have {remaining} stories remaining today.")
+                                        st.info(f"Story content created successfully! You have {remaining} stories remaining today.")
                                     else:
                                         st.warning("⚠️ You've reached your daily limit. Come back tomorrow for more!")
+                else:
+                    st.warning("⚠️ Video creation is not available. Please install moviepy: `pip install moviepy==1.0.3`")
+                    
+                    # Still save the content
+                    if st.session_state.generated_story:
+                        content_data = {
+                            "id": hashlib.md5(f"{story_input}{datetime.now()}".encode()).hexdigest()[:8],
+                            "title": story_input[:50] + "..." if len(story_input) > 50 else story_input,
+                            "text": st.session_state.generated_story,
+                            "campaign": selected_campaign,
+                            "type": "youtube_story",
+                            "author": "Content Creator",
+                            "target_audience": target_audience,
+                            "video_length": content_length,
+                            "story_structure": selected_structure,
+                            "visual_style": visual_style,
+                            "quality_score": validation['quality_score'],
+                            "created_at": datetime.now().isoformat()
+                        }
 
+                        save_to_mongodb(content_data, manager.client)
+
+                        # Count the story
+                        if not st.session_state.admin_mode:
+                            story_tracker.increment_story_count()
+                            remaining = story_tracker.get_remaining_stories()
+                            if remaining > 0:
+                                st.success(f"✅ Story content created successfully! You have {remaining} stories remaining today.")
+                            else:
+                                st.warning("⚠️ You've reached your daily limit. Come back tomorrow for more!")
+                    
     with tab2:
         st.header("🔍 Discover Content")
 
