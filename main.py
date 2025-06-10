@@ -69,15 +69,57 @@ try:
 except ImportError as e:
     print(f"[Backend] LangChain import failed: {e}")
 
+# Try to fix MoviePy for Python 3.13
+VIDEO_SUPPORT = False
 try:
-    from moviepy.editor import (ImageClip, AudioFileClip, concatenate_videoclips,
-                                CompositeAudioClip, TextClip, CompositeVideoClip,
-                                ColorClip, vfx)
-    from mutagen.mp3 import MP3
-    VIDEO_SUPPORT = True
-    print("[Backend] Video support libraries imported")
-except ImportError as e:
-    print(f"[Backend] Video support not available: {e}")
+    # First, try our compatibility fix
+    try:
+        from moviepy_fix import editor, VIDEO_SUPPORT as FIX_VIDEO_SUPPORT
+        if FIX_VIDEO_SUPPORT and editor:
+            ImageClip = editor.ImageClip
+            AudioFileClip = editor.AudioFileClip
+            concatenate_videoclips = editor.concatenate_videoclips
+            CompositeAudioClip = editor.CompositeAudioClip
+            TextClip = editor.TextClip
+            CompositeVideoClip = editor.CompositeVideoClip
+            VIDEO_SUPPORT = True
+            print("[Backend] Video support loaded via compatibility fix")
+    except:
+        pass
+    
+    # If fix didn't work, try standard import
+    if not VIDEO_SUPPORT:
+        try:
+            from moviepy.editor import (ImageClip, AudioFileClip, concatenate_videoclips,
+                                        CompositeAudioClip, TextClip, CompositeVideoClip)
+            VIDEO_SUPPORT = True
+            print("[Backend] Video support loaded via standard import")
+        except:
+            # Try alternative import
+            try:
+                import moviepy.editor as mpe
+                ImageClip = mpe.ImageClip
+                AudioFileClip = mpe.AudioFileClip
+                concatenate_videoclips = mpe.concatenate_videoclips
+                CompositeAudioClip = mpe.CompositeAudioClip
+                TextClip = mpe.TextClip
+                CompositeVideoClip = mpe.CompositeVideoClip
+                VIDEO_SUPPORT = True
+                print("[Backend] Video support loaded via alternative import")
+            except Exception as e:
+                print(f"[Backend] Video support not available: {e}")
+                VIDEO_SUPPORT = False
+    
+    # Import mutagen for audio duration
+    if VIDEO_SUPPORT:
+        try:
+            from mutagen.mp3 import MP3
+        except:
+            print("[Backend] Mutagen not available, video creation may fail")
+            
+except Exception as e:
+    print(f"[Backend] Video support setup failed: {e}")
+    VIDEO_SUPPORT = False
 
 try:
     from pymongo import MongoClient
@@ -210,38 +252,97 @@ st.markdown("""
 
 # Story Tracking System (Replaced TimeTracker)
 class StoryTracker:
-    """Manages daily story generation limits."""
+    """Manages daily story generation limits using MongoDB."""
 
     def __init__(self):
         self.admin_password = ADMIN_PASSWORD
         self.daily_limit = DAILY_STORY_LIMIT
-        self.storage_file = "story_tracker.json"
+        self.db_client = None
+        self.collection = None
+        self._setup_mongodb()
+
+    def _setup_mongodb(self):
+        """Setup MongoDB connection for story tracking."""
+        try:
+            if MONGODB_AVAILABLE and MONGODB_URI:
+                self.db_client = MongoClient(MONGODB_URI)
+                self.db_client.admin.command('ping')
+                db = self.db_client.youth_advocacy
+                self.collection = db.story_tracker
+                print("[Backend] Story tracker MongoDB connected")
+        except Exception as e:
+            print(f"[Backend] Story tracker MongoDB setup failed: {e}")
+            self.db_client = None
+            self.collection = None
 
     def get_usage_data(self) -> dict:
-        """Load usage data from file."""
-        try:
-            if os.path.exists(self.storage_file):
-                with open(self.storage_file, 'r') as f:
-                    return json.load(f)
-        except:
-            pass
-        return {}
+        """Load usage data from MongoDB or fallback to session state."""
+        if self.collection is not None:
+            try:
+                # Get all usage documents from MongoDB
+                usage_dict = {}
+                for doc in self.collection.find():
+                    user_id = doc.get('user_id')
+                    if user_id:
+                        usage_dict[user_id] = doc.get('usage', {})
+                return usage_dict
+            except Exception as e:
+                print(f"[Backend] MongoDB read failed: {e}")
+        
+        # Fallback to session state
+        if 'story_usage_data' not in st.session_state:
+            st.session_state.story_usage_data = {}
+        return st.session_state.story_usage_data
 
     def save_usage_data(self, data: dict):
-        """Save usage data to file."""
-        try:
-            with open(self.storage_file, 'w') as f:
-                json.dump(data, f)
-        except:
-            pass
+        """Save usage data to MongoDB or fallback to session state."""
+        if self.collection is not None:
+            try:
+                # Update each user's data in MongoDB
+                for user_id, usage in data.items():
+                    self.collection.update_one(
+                        {'user_id': user_id},
+                        {'$set': {'user_id': user_id, 'usage': usage, 'updated_at': datetime.utcnow()}},
+                        upsert=True
+                    )
+                print("[Backend] Story usage saved to MongoDB")
+            except Exception as e:
+                print(f"[Backend] MongoDB save failed: {e}")
+                # Fallback to session state
+                st.session_state.story_usage_data = data
+        else:
+            # Fallback to session state
+            st.session_state.story_usage_data = data
 
     def get_user_id(self) -> str:
-        """Get unique user identifier."""
-        # In production, use proper user authentication
-        # For demo, use session ID
-        if 'user_id' not in st.session_state:
-            st.session_state.user_id = hashlib.md5(str(time.time()).encode()).hexdigest()[:16]
-        return st.session_state.user_id
+        """Get unique user identifier that persists across sessions."""
+        # Check if user_id already exists in session state
+        if 'persistent_user_id' in st.session_state:
+            return st.session_state.persistent_user_id
+        
+        # Try to get from query params (if set via a cookie workaround)
+        query_params = st.query_params
+        if 'uid' in query_params:
+            user_id = query_params['uid']
+            st.session_state.persistent_user_id = user_id
+            return user_id
+        
+        # Generate new user ID
+        # Use a combination of timestamp and random string for uniqueness
+        timestamp = str(int(time.time() * 1000))
+        random_str = ''.join(random.choices(string.ascii_lowercase + string.digits, k=8))
+        user_id = hashlib.md5(f"{timestamp}{random_str}".encode()).hexdigest()[:16]
+        
+        # Store in session state
+        st.session_state.persistent_user_id = user_id
+        
+        # Try to persist via query params (works as a simple cookie alternative)
+        try:
+            st.query_params.uid = user_id
+        except:
+            pass
+            
+        return user_id
 
     def get_stories_today(self) -> int:
         """Get number of stories created today."""
@@ -286,9 +387,65 @@ class StoryTracker:
         self.save_usage_data(usage_data)
         print(f"[Backend] Story count incremented. User {user_id} has created {current_count + 1} stories today.")
 
-    def verify_admin(self, password: str) -> bool:
-        """Verify admin password."""
-        return password == self.admin_password
+    def cleanup_old_data(self):
+        """Remove usage data older than 30 days."""
+        if self.collection is not None:
+            try:
+                cutoff_date = (date.today() - timedelta(days=30)).isoformat()
+                
+                # Remove old daily entries from all users
+                all_users = self.collection.find()
+                for user_doc in all_users:
+                    usage = user_doc.get('usage', {})
+                    # Filter out dates older than 30 days
+                    filtered_usage = {
+                        date_str: count 
+                        for date_str, count in usage.items() 
+                        if date_str >= cutoff_date
+                    }
+                    
+                    if len(filtered_usage) < len(usage):
+                        self.collection.update_one(
+                            {'user_id': user_doc['user_id']},
+                            {'$set': {'usage': filtered_usage}}
+                        )
+                
+                print("[Backend] Cleaned up old story tracking data")
+            except Exception as e:
+                print(f"[Backend] Cleanup failed: {e}")
+
+    def get_all_users_stats(self) -> dict:
+        """Get statistics for all users (admin feature)."""
+        stats = {
+            'total_users': 0,
+            'total_stories_today': 0,
+            'total_stories_all_time': 0,
+            'active_users_today': 0
+        }
+        
+        if self.collection is not None:
+            try:
+                today = date.today().isoformat()
+                all_users = list(self.collection.find())
+                
+                stats['total_users'] = len(all_users)
+                
+                for user_doc in all_users:
+                    usage = user_doc.get('usage', {})
+                    
+                    # Count today's stories
+                    today_count = usage.get(today, 0)
+                    if today_count > 0:
+                        stats['active_users_today'] += 1
+                        stats['total_stories_today'] += today_count
+                    
+                    # Count all time stories
+                    stats['total_stories_all_time'] += sum(usage.values())
+                    
+            except Exception as e:
+                print(f"[Backend] Stats calculation failed: {e}")
+        
+        return stats
 
 # Initialize story tracker
 story_tracker = StoryTracker()
@@ -380,7 +537,7 @@ STORY_STRUCTURES = {
 }
 
 # MongoDB Configuration
-MONGODB_URI = os.getenv("MONGODB_URI", MONGODB_URI)
+MONGODB_URI = os.getenv("MONGODB_URI", "mongodb+srv://javier:Clubstride@clubstridecluster.cp9ed.mongodb.net/")
 
 # Enhanced Utility Functions
 def validate_input_quality(text: str) -> dict:
@@ -521,7 +678,18 @@ def save_to_mongodb(content: Dict, openai_client) -> bool:
 def create_video(images, audio_files, video_params):
     """Create final video with proper audio concatenation."""
     if not VIDEO_SUPPORT:
-        st.error("Video creation requires moviepy and mutagen. Please install them.")
+        # Try OpenCV fallback
+        try:
+            from video_creator_cv2 import create_video_opencv
+            output_path = tempfile.NamedTemporaryFile(delete=False, suffix=".mp4").name
+            result = create_video_opencv(images, audio_files, output_path, video_params.get('fps', 30))
+            if result:
+                print("[Backend] Video created using OpenCV fallback")
+                return result
+        except:
+            pass
+        
+        st.error("Video creation requires moviepy or opencv-python. Please install one of them.")
         return None
 
     try:
@@ -597,6 +765,18 @@ def create_video(images, audio_files, video_params):
 
     except Exception as e:
         print(f"[Backend] Error creating video: {e}")
+        
+        # Try OpenCV fallback
+        try:
+            from video_creator_cv2 import create_video_opencv
+            output_path = tempfile.NamedTemporaryFile(delete=False, suffix=".mp4").name
+            result = create_video_opencv(images, audio_files, output_path, video_params.get('fps', 30))
+            if result:
+                print("[Backend] Video created using OpenCV fallback after MoviePy failure")
+                return result
+        except:
+            pass
+            
         st.error(f"Error creating video: {e}")
         return None
 
@@ -1671,6 +1851,66 @@ def main():
                                             st.success(f"✅ Video created successfully! You have {remaining} stories remaining today.")
                                         else:
                                             st.warning("⚠️ You've reached your daily limit. Come back tomorrow for more!")
+                            else:
+                                st.error("Video creation failed. However, your story, images, and audio have been generated successfully!")
+                                
+                                # Still save to database even if video creation failed
+                                if st.session_state.generated_story:
+                                    content_data = {
+                                        "id": hashlib.md5(f"{story_input}{datetime.now()}".encode()).hexdigest()[:8],
+                                        "title": story_input[:50] + "..." if len(story_input) > 50 else story_input,
+                                        "text": st.session_state.generated_story,
+                                        "campaign": selected_campaign,
+                                        "type": "youtube_story",
+                                        "author": "Content Creator",
+                                        "target_audience": target_audience,
+                                        "video_length": content_length,
+                                        "story_structure": selected_structure,
+                                        "visual_style": visual_style,
+                                        "quality_score": validation['quality_score'],
+                                        "created_at": datetime.now().isoformat()
+                                    }
+
+                                    save_to_mongodb(content_data, manager.client)
+
+                                    # Still count the story even if video failed
+                                    if not st.session_state.admin_mode:
+                                        story_tracker.increment_story_count()
+                                        remaining = story_tracker.get_remaining_stories()
+                                        if remaining > 0:
+                                            st.info(f"Story content created successfully! You have {remaining} stories remaining today.")
+                                        else:
+                                            st.warning("⚠️ You've reached your daily limit. Come back tomorrow for more!")
+                        else:
+                            st.warning("⚠️ Video creation is not available. Please install moviepy: `pip install moviepy==1.0.3`")
+                            
+                            # Still save the content
+                            if st.session_state.generated_story:
+                                content_data = {
+                                    "id": hashlib.md5(f"{story_input}{datetime.now()}".encode()).hexdigest()[:8],
+                                    "title": story_input[:50] + "..." if len(story_input) > 50 else story_input,
+                                    "text": st.session_state.generated_story,
+                                    "campaign": selected_campaign,
+                                    "type": "youtube_story",
+                                    "author": "Content Creator",
+                                    "target_audience": target_audience,
+                                    "video_length": content_length,
+                                    "story_structure": selected_structure,
+                                    "visual_style": visual_style,
+                                    "quality_score": validation['quality_score'],
+                                    "created_at": datetime.now().isoformat()
+                                }
+
+                                save_to_mongodb(content_data, manager.client)
+
+                                # Count the story
+                                if not st.session_state.admin_mode:
+                                    story_tracker.increment_story_count()
+                                    remaining = story_tracker.get_remaining_stories()
+                                    if remaining > 0:
+                                        st.success(f"✅ Story content created successfully! You have {remaining} stories remaining today.")
+                                    else:
+                                        st.warning("⚠️ You've reached your daily limit. Come back tomorrow for more!")
 
     with tab2:
         st.header("🔍 Discover Content")
