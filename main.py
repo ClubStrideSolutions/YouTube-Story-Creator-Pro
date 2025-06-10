@@ -537,7 +537,7 @@ STORY_STRUCTURES = {
 }
 
 # MongoDB Configuration
-MONGODB_URI = os.getenv("MONGODB_URI", "mongodb+srv://javier:Clubstride@clubstridecluster.cp9ed.mongodb.net/")
+# MONGODB_URI = os.getenv("MONGODB_URI")
 
 # Enhanced Utility Functions
 def validate_input_quality(text: str) -> dict:
