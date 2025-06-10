@@ -5,6 +5,32 @@ __pycache__/
 
 # C extensions
 *.so
+# Output files
+output/
+downloads/
+generated/
+
+# FFmpeg
+ffmpeg.exe
+ffmpeg
+ffprobe.exe
+ffprobe
+# Project specific
+usage_tracker.json
+story_tracker.json
+config.py
+*.mp4
+*.mp3
+*.png
+*.jpg
+*.jpeg
+*.srt
+
+# Temporary files
+temp/
+tmp/
+*.tmp
+*.temp
 
 # Distribution / packaging
 .Python
