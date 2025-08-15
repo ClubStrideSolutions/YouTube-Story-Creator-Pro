@@ -21,6 +21,10 @@ MONGODB_URI = get_secret("MONGODB_URI", "")
 # Authentication
 ADMIN_PASSWORD = get_secret("ADMIN_PASSWORD", "")
 
+# Video Generation Security
+VIDEO_GENERATION_PASSWORD = get_secret("VIDEO_GENERATION_PASSWORD", "")
+ENABLE_VIDEO_GENERATION_DEFAULT = get_secret("ENABLE_VIDEO_GENERATION", "false").lower() == "true"
+
 # Limits and Quotas
 DAILY_STORY_LIMIT = int(get_secret("DAILY_STORY_LIMIT", 5))
 MAX_VIDEO_LENGTH = int(get_secret("MAX_VIDEO_LENGTH", 60))  # seconds
