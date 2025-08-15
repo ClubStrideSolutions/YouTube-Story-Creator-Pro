@@ -1,0 +1,52 @@
+[theme]
+# Primary color for interactive elements
+primaryColor = "#667eea"
+
+# Background color for the main content area
+backgroundColor = "#ffffff"
+
+# Background color for sidebar and most interactive widgets
+secondaryBackgroundColor = "#f0f2f6"
+
+# Color used for almost all text
+textColor = "#262730"
+
+# Font family for all text in the app
+font = "sans serif"
+
+[server]
+# Max file upload size (in MB)
+maxUploadSize = 200
+
+# Max message size (in MB)
+maxMessageSize = 200
+
+# Enable XSRF protection
+enableXsrfProtection = true
+
+# Enable CORS protection
+enableCORS = false
+
+[browser]
+# Gather usage stats
+gatherUsageStats = false
+
+# Show error details in the browser
+showErrorDetails = true
+
+[client]
+# Show error details in the browser
+showErrorDetails = true
+
+# Tool tip display delay
+toolbarMode = "minimal"
+
+[runner]
+# Allows users to download files
+magicEnabled = true
+
+# Install packages automatically
+installTracer = false
+
+# Fast reruns
+fastReruns = true
