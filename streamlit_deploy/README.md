@@ -2,14 +2,32 @@
 
 Create amazing educational videos for school projects and social media platforms like TikTok, YouTube Shorts, and Instagram Reels!
 
+## 🌟 Available Versions
+
+### 1. **app.py** - Standard Version
+- Works in demo mode without API keys
+- Basic features with placeholder content
+- Good for testing and demonstrations
+
+### 2. **app_enhanced.py** - Pro Version ⭐
+- **ALL advanced features from the full codebase**
+- Professional video effects and transitions
+- Advanced templates with multiple styles
+- Session-based usage tracking
+- Secure API key management
+- Image filters and text overlays
+- Multiple voice options for narration
+
 ## 🌟 Features
 
-- **Educational Templates**: 6 pre-made templates for different subjects
+- **Educational Templates**: 6+ pre-made templates for different subjects
 - **Multi-Platform Support**: Optimized for TikTok, YouTube Shorts, Instagram Reels
-- **Grade-Level Customization**: Content tailored for K-12 and AP students
-- **AI-Powered** (Optional): Generate scripts and images with OpenAI
+- **Grade-Level Customization**: Content tailored for K-12, College, and Professional
+- **AI-Powered**: Generate scripts and images with YOUR OpenAI API key
 - **Demo Mode**: Works without API keys with example content
 - **Safe for Schools**: Built-in content guidelines and safety features
+- **Advanced Effects**: Transitions, filters, text overlays, and more
+- **Secure**: Your API key is never stored permanently
 
 ## 🚀 Live Demo
 
@@ -52,13 +70,23 @@ streamlit run app.py
 2. Sign in with GitHub
 3. Click "New app"
 4. Select your repository and branch
-5. Set the main file path to `app.py`
+5. Set the main file path to:
+   - `app.py` for standard version
+   - `app_enhanced.py` for pro version with all features
 6. Click "Deploy"
 
-### Step 3: Add API Keys (Optional)
+### Step 3: API Key Setup
 
-For AI features, add your OpenAI API key:
+#### For app_enhanced.py (Recommended):
+Users enter their own API key directly in the app:
+1. Open the deployed app
+2. Enter your OpenAI API key in the secure input field
+3. Click "Validate & Continue"
+4. Your key is encrypted and used only for your session
+5. **Never stored permanently or shared**
 
+#### For app.py (Optional):
+Add your API key in Streamlit Cloud settings:
 1. In Streamlit Cloud dashboard, click on your app
 2. Click "Settings" → "Secrets"
 3. Add your secrets:
@@ -67,7 +95,7 @@ OPENAI_API_KEY = "sk-your-api-key-here"
 ```
 4. Click "Save"
 
-The app will automatically restart with AI features enabled.
+**⚠️ Warning**: This makes your API key available to all app users. Use app_enhanced.py for better security.
 
 ## 🎨 Demo Mode vs Full Mode
 
