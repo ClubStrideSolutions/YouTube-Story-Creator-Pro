@@ -20,6 +20,7 @@ pydub>=0.25.1
 ffmpeg-python>=0.2.0  # Python FFmpeg wrapper
 gTTS>=2.3.0  # Google Text-to-Speech (works on cloud)
 pyttsx3>=2.90  # Offline TTS fallback
+mutagen>=1.47.0  # Audio metadata reading (fixes MP3 error)
 
 # Optional AI enhancements
 langchain>=0.1.0
