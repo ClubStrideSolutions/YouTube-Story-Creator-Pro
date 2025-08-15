@@ -1,0 +1,13 @@
+# System packages required for video/audio processing on Streamlit Cloud
+# This file tells Streamlit Cloud to install these system dependencies
+
+ffmpeg
+libsm6
+libxext6
+libxrender-dev
+libgomp1
+libglib2.0-0
+libsm6
+libxext6
+libxrender1
+libglib2.0-0

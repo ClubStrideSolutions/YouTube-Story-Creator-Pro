@@ -6,14 +6,20 @@ Pillow>=10.2.0
 python-dotenv>=1.0.0
 requests>=2.31.0
 
-# Video processing
-moviepy>=1.0.3
-opencv-python-headless>=4.9.0
+# Video processing - IMPORTANT: May not work on Streamlit Cloud
+# Streamlit Cloud often lacks FFmpeg system dependency
+moviepy==1.0.3  # Fixed version for compatibility
 imageio>=2.33.0
-imageio-ffmpeg>=0.4.9
+imageio-ffmpeg>=0.4.9  # Bundled FFmpeg for Python
+
+# Try alternative video library if moviepy fails
+opencv-python-headless>=4.9.0  # Headless version for cloud
 
 # Audio processing
 pydub>=0.25.1
+ffmpeg-python>=0.2.0  # Python FFmpeg wrapper
+gTTS>=2.3.0  # Google Text-to-Speech (works on cloud)
+pyttsx3>=2.90  # Offline TTS fallback
 
 # Optional AI enhancements
 langchain>=0.1.0
@@ -22,3 +28,8 @@ langchain-openai>=0.0.5
 # Utilities
 numpy>=1.24.0
 pydantic>=2.5.0
+
+# Additional dependencies for cloud compatibility
+decorator>=4.4.2  # Required by moviepy
+proglog>=0.1.10  # Progress logging for moviepy
+tqdm>=4.65.0  # Progress bars
