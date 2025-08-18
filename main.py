@@ -2240,6 +2240,10 @@ def main():
                                 
                                 # Complete YouTube Package Download
                                 st.markdown("---")
+                                
+                                # Add checkbox to control page reload
+                                st.info("📌 **Important:** Download your video and copy all metadata before checking the box below to continue.")
+                                
                                 col1, col2, col3 = st.columns(3)
                                 
                                 with col1:
@@ -2383,6 +2387,19 @@ def main():
                                             st.success(f"✅ Video created successfully! You have {remaining} stories remaining today.")
                                         else:
                                             st.warning("⚠️ You've reached your daily limit. Come back tomorrow for more!")
+                                
+                                # Add checkbox to confirm downloads are complete
+                                st.markdown("---")
+                                st.markdown("### ✅ Ready to Continue?")
+                                st.warning("⚠️ **Before checking this box:** Make sure you have downloaded your video and copied all metadata (title, description, tags) that you need.")
+                                
+                                if st.checkbox("✅ I have downloaded my video and saved all metadata", key="video_upload_complete"):
+                                    st.success("Great! You can now create another video.")
+                                    # Clear session state for next video
+                                    for key in ['generated_story', 'generated_images', 'audio_files', 'final_video_path', 'youtube_metadata', 'narration_texts']:
+                                        if key in st.session_state:
+                                            del st.session_state[key]
+                                    st.rerun()
                             
                             else:
                                 # If YouTube metadata generation failed, use original display
@@ -2502,6 +2519,19 @@ def main():
                                             st.success(f"✅ Video created successfully! You have {remaining} stories remaining today.")
                                         else:
                                             st.warning("⚠️ You've reached your daily limit. Come back tomorrow for more!")
+                                
+                                # Add checkbox to confirm downloads are complete
+                                st.markdown("---")
+                                st.markdown("### ✅ Ready to Continue?")
+                                st.warning("⚠️ **Before checking this box:** Make sure you have downloaded your video and copied all content that you need.")
+                                
+                                if st.checkbox("✅ I have downloaded my video and saved all content", key="video_upload_complete_fallback"):
+                                    st.success("Great! You can now create another video.")
+                                    # Clear session state for next video
+                                    for key in ['generated_story', 'generated_images', 'audio_files', 'final_video_path', 'narration_texts']:
+                                        if key in st.session_state:
+                                            del st.session_state[key]
+                                    st.rerun()
                                             
                         else:
                             st.error("Video creation failed. However, your story, images, and audio have been generated successfully!")
@@ -2533,6 +2563,19 @@ def main():
                                         st.info(f"Story content created successfully! You have {remaining} stories remaining today.")
                                     else:
                                         st.warning("⚠️ You've reached your daily limit. Come back tomorrow for more!")
+                                
+                                # Add checkbox to confirm user is ready to continue
+                                st.markdown("---")
+                                st.markdown("### ✅ Ready to Continue?")
+                                st.info("Note: Video creation failed, but your story, images, and audio were generated successfully.")
+                                
+                                if st.checkbox("✅ I have saved what I need and want to continue", key="video_failed_continue"):
+                                    st.success("You can now create another video.")
+                                    # Clear session state for next video
+                                    for key in ['generated_story', 'generated_images', 'audio_files', 'narration_texts']:
+                                        if key in st.session_state:
+                                            del st.session_state[key]
+                                    st.rerun()
                 else:
                     st.warning("⚠️ Video creation is not available. Please install moviepy: `pip install moviepy==1.0.3`")
                     
