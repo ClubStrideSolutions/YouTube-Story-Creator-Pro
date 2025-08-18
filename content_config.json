@@ -1,0 +1,155 @@
+{
+  "daily_videos": 3,
+  "campaigns": [
+    {
+      "id": "climate",
+      "name": "Climate Action",
+      "enabled": false,
+      "topics": [
+        "renewable energy success stories",
+        "youth climate activists making a difference",
+        "simple daily actions to fight climate change",
+        "innovative green technology solutions",
+        "community environmental projects",
+        "school sustainability programs",
+        "climate change solutions that work",
+        "local environmental heroes"
+      ]
+    },
+    {
+      "id": "education",
+      "name": "Education Equality",
+      "enabled": false,
+      "topics": [
+        "students overcoming educational barriers",
+        "innovative teaching methods changing lives",
+        "technology bridging education gaps",
+        "community learning initiatives",
+        "peer tutoring success stories",
+        "free online education resources",
+        "scholarship success stories",
+        "alternative education paths"
+      ]
+    },
+    {
+      "id": "mentalhealth",
+      "name": "Mental Health",
+      "enabled": true,
+      "topics": [
+        "breaking mental health stigma stories",
+        "student support groups making impact",
+        "mindfulness in schools success",
+        "peer counseling programs",
+        "creative therapy approaches for youth",
+        "stress management techniques for students",
+        "building resilience in tough times",
+        "mental health apps that help"
+      ]
+    },
+    {
+      "id": "digitalrights",
+      "name": "Digital Rights",
+      "enabled": false,
+      "topics": [
+        "protecting online privacy for students",
+        "fighting cyberbullying effectively",
+        "digital literacy success stories",
+        "youth coding programs changing lives",
+        "internet access equality initiatives",
+        "safe social media practices",
+        "digital citizenship education",
+        "tech skills for the future"
+      ]
+    },
+    {
+      "id": "socialjustice",
+      "name": "Social Justice",
+      "enabled": false,
+      "topics": [
+        "youth activists making change",
+        "community organizing success stories",
+        "fighting discrimination in schools",
+        "inclusive spaces for all students",
+        "cultural celebration initiatives",
+        "anti-bullying campaigns that work",
+        "diversity and inclusion programs",
+        "student voices for change"
+      ]
+    },
+    {
+      "id": "sexualhealth",
+      "name": "Sexual Health & STI Resources",
+      "enabled": true,
+      "topics": [
+        "breaking STI stigma through education",
+        "youth-friendly sexual health clinics success stories",
+        "peer education programs for safe practices",
+        "comprehensive sex education impact stories",
+        "free testing resources for students",
+        "consent education programs that work",
+        "LGBTQ+ inclusive health services",
+        "teen pregnancy prevention success stories",
+        "anonymous support services making a difference",
+        "healthy relationship education programs"
+      ]
+    },
+    {
+      "id": "foodsecurity",
+      "name": "Food Security & Access",
+      "enabled": true,
+      "topics": [
+        "student food pantry success stories",
+        "community gardens feeding neighborhoods",
+        "school breakfast programs changing lives",
+        "food rescue initiatives preventing waste",
+        "cooking classes teaching healthy eating",
+        "mobile food banks reaching students",
+        "weekend backpack programs for kids",
+        "urban farming projects by youth",
+        "free lunch programs during summer",
+        "nutrition education making impact"
+      ]
+    }
+  ],
+  "video_settings": {
+    "length_seconds": 60,
+    "style": "modern",
+    "voice": "professional",
+    "subtitles": true,
+    "resolution": [1920, 1080],
+    "fps": 30,
+    "quality": "high"
+  },
+  "story_structures": [
+    "hero_journey",
+    "problem_solution",
+    "before_after",
+    "day_in_life",
+    "emotional_arc",
+    "testimonial",
+    "educational",
+    "inspirational"
+  ],
+  "target_audiences": [
+    "Students 13-18",
+    "Young Adults 18-25",
+    "Educators",
+    "Parents",
+    "General Youth",
+    "Activists",
+    "Community Leaders"
+  ],
+  "output_settings": {
+    "create_folders_by_date": true,
+    "organize_by_campaign": true,
+    "generate_youtube_package": true,
+    "create_thumbnails": true,
+    "save_raw_materials": true
+  },
+  "scheduling": {
+    "run_time": "09:00",
+    "days": ["monday", "tuesday", "wednesday", "thursday", "friday"],
+    "max_retries": 3,
+    "retry_delay_seconds": 60
+  }
+}
